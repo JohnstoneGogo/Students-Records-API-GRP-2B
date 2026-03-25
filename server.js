@@ -10,9 +10,8 @@ const studentCollection = [];
 app.use(express.json());
 
 // Sample route
-app.get('/', (req, res) => {
-  res.send('Hello, World!');
-});
+
+app.use(express.static('public'));
 
 app.get('/students', (req, res) => {
   res.json(studentCollection);

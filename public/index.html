@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Records GRP-2B</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background: #f4f4f9; }
+        .container { max-width: 600px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        input { display: block; width: 95%; margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #28a745; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; }
+        button:hover { background: #218838; }
+        .student-card { border-bottom: 1px solid #eee; padding: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Add New Student</h2>
+    <input type="text" id="name" placeholder="Full Name">
+    <input type="email" id="email" placeholder="Email">
+    <input type="text" id="matric" placeholder="Matric Number">
+    <input type="text" id="courses" placeholder="Courses (e.g. Math, Science)">
+    <button onclick="addStudent()">Add Student</button>
+
+    <h2>Student List</h2>
+    <div id="studentList">Loading...</div>
+</div>
+
+<script>
+    // Fetch and show students
+    async function getStudents() {
+        const res = await fetch('/students');
+        const data = await res.json();
+        const list = document.getElementById('studentList');
+        
+        if(data.length === 0) {
+            list.innerHTML = "<p>No records found.</p>";
+            return;
+        }
+
+        list.innerHTML = data.map(s => `
+            <div class="student-card">
+                <strong>${s.name}</strong> (${s.matricNumber})<br>
+                <small>${s.email} | Courses: ${s.courses}</small>
+            </div>
+        `).join('');
+    }
+
+    // Send new student to API
+    async function addStudent() {
+        const payload = {
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            matricNumber: document.getElementById('matric').value,
+            courses: document.getElementById('courses').value
+        };
+
+        await fetch('/students', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        getStudents(); // Refresh the list
+    }
+
+    getStudents(); // Run on page load
+</script>
+</body>
+</html>
