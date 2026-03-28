@@ -2,6 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const app = express();
 const port = 3000;
+const crypto = require('crypto');
+
+//in-memory data store for students
+const studentCollection = [];
 
 app.use(express.json());
 
