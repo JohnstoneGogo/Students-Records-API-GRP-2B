@@ -53,7 +53,7 @@ app.post("/students/bulk", (req, res) => {
     }
     const newStudent = { id: crypto.randomUUID(), name, email, matricNumber, courses };
     newlyadded.push(newStudent);
-    studentRecords.push(newStudent);
+    studentCollection.push(newStudent);
   }
   res.status(201).json({ message: "Bulk inserted successfully", Students: newlyadded });
 });
