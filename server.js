@@ -9,7 +9,12 @@ const studentCollection = [];
 
 // Sample routes
 app.use(express.json());
-app.use(express.static('public'));
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: "Invalid JSON format" });
+  }
+  next();
+});
 
 const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -20,7 +25,10 @@ app.get('/students', (req, res) => {
 
 //FOR CREATING A USER
 app.post("/students", (req, res) => {
-  const { name, email, matricNumber, courses } = req.body;
+  let { name, email, matricNumber, courses } = req.body;
+  name = name?.trim();
+  email = email?.trim();
+  matricNumber = matricNumber?.trim();
   const existingStudent = studentCollection.find(s => s.email === email);
 
   if (!name || !email || !matricNumber || !courses) {
@@ -40,6 +48,16 @@ app.post("/students", (req, res) => {
   console.log("Student record created:", newStudent);
 });
 
+//FOR GETTING A USER
+app.get("/students/:id", (req, res) => {
+  const student = studentCollection.find(s => s.id === req.params.id);
+
+  if (!student) {
+    return res.status(404).json({ error: "Student not found" });
+  }
+  res.json(student);
+});
+
 //FOR UPDATING A USER
 app.put("/students/:id", (req, res) => {
   const { id } = req.params;
@@ -47,6 +65,13 @@ app.put("/students/:id", (req, res) => {
   const studentIndex = studentCollection.findIndex(s => s.id === id);
   const duplicateEmail = studentCollection.find(s => s.email === email && s.id !== id);
 
+  if (name !== undefined) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return res.status(400).json({ error: "Name cannot be empty" });
+    }
+    student.name = trimmedName;
+  }
   if (studentIndex === -1) {
     return res.status(404).json({ error: "Student not found" });
   }
@@ -72,8 +97,27 @@ app.patch("/students/:id", (req, res) => {
     return res.status(404).json({ error: "Student not found" });
   }
   const { name, email, matricNumber, courses } = req.body;
+  if (name !== undefined) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return res.status(400).json({ error: "Name cannot be empty" });
+    }
+    student.name = trimmedName;
+  }
 
   // Validate email only if it's being updated
+  if (email !== undefined) {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      return res.status(400).json({ error: "Email cannot be empty" });
+    }
+    if (!isValidEmail(trimmedEmail)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+    student.email = trimmedEmail;
+  }
+
   if (email) {
     if (!isValidEmail(email)) {
       return res.status(400).json({ error: "Invalid email format" });
@@ -83,10 +127,14 @@ app.patch("/students/:id", (req, res) => {
     if (exists) {
       return res.status(400).json({ error: "Email already exists" });
     }
+    student.email = email;
   }
-  Object.assign(student, { name, email, matricNumber, courses });
+  // Only update fields that were sent
+  if (name !== undefined) student.name = name;
+  if (matricNumber !== undefined) student.matricNumber = matricNumber;
+  if (courses !== undefined) student.courses = courses;
 
-  res.json({ message: "Student updated", student });
+  res.json({ message: "Student updated successfully", student });
 });
 
 //FOR DELETING A USER
