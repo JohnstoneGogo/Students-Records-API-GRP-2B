@@ -35,13 +35,12 @@ app.post("/students", (req, res) => {
 
   const newStudent = { id: crypto.randomUUID(), name, email, matricNumber, courses };
   studentCollection.push(newStudent);
-
   res.status(201).json({ message: "New student added successfully", student: newStudent });
   console.log(`New student created: ${newStudent.name}`);
   console.log("Student record created:", newStudent);
 });
 
-//FOR CREATING MULTIPLE USERS
+//FOR UPDATING A USER
 app.put("/students/:id", (req, res) => {
   const { id } = req.params;
   const { name, email, matricNumber, courses } = req.body;
