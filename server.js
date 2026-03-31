@@ -40,7 +40,24 @@ app.post("/students", (req, res) => {
   console.log("Student record created:", newStudent);
 });
 
-//FOR UPDATING A USER
+//FOR CREATING MULTIPLE USERS
+app.post("/students/bulk", (req, res) => {
+  const newlyadded = [];
+  const student = req.body;
+  if (Array.isArray(student) === false) return res.status(400).json({ Error: "Inputs should be more than 1 student" });
+  for (let i = 0; i < student.length; i++) {
+    const { name, email, matricNumber, courses } = student[i];
+    if (!name || !email || !matricNumber || !courses) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+    const newStudent = { id: crypto.randomUUID(), name, email, matricNumber, courses };
+    newlyadded.push(newStudent);
+    studentCollection.push(newStudent);
+  }
+  res.status(201).json({ message: "Bulk inserted successfully", Students: newlyadded });
+});
+
+//FOR CREATING UPDATING USER DETAILS COMPLETELY
 app.put("/students/:id", (req, res) => {
   const { id } = req.params;
   const { name, email, matricNumber, courses } = req.body;
