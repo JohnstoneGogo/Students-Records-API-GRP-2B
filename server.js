@@ -3,9 +3,20 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 
-//in-memory data store for students
-const studentCollection = [];
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.log(err));
+
+  const studentSchema = new mongoose.Schema({
+  name: String,
+  email: { type: String, unique: true },
+  matricNumber: String,
+  courses: [String]
+});
+
+const Student = mongoose.model("Student", studentSchema);
 
 // Sample routes
 app.use(express.json());
@@ -24,12 +35,12 @@ app.get('/students', (req, res) => {
 });
 
 //FOR CREATING A USER
-app.post("/students", (req, res) => {
+app.post("/students", async (req, res) => {
   let { name, email, matricNumber, courses } = req.body;
   name = name?.trim();
   email = email?.trim();
   matricNumber = matricNumber?.trim();
-  const existingStudent = studentCollection.find(s => s.email === email);
+  const existingStudent = await Student.findOne({ email });
 
   if (!name || !email || !matricNumber || !courses) {
     return res.status(400).json({ error: "All fields are required" });
@@ -41,16 +52,16 @@ app.post("/students", (req, res) => {
     return res.status(400).json({ error: "Invalid email format" });
   }
 
-  const newStudent = { id: crypto.randomUUID(), name, email, matricNumber, courses };
-  studentCollection.push(newStudent);
+  const newStudent = new Student({ name, email, matricNumber, courses });
+  await newStudent.save();
   res.status(201).json({ message: "New student added successfully", student: newStudent });
   console.log(`New student created: ${newStudent.name}`);
   console.log("Student record created:", newStudent);
 });
 
 //FOR GETTING A USER
-app.get("/students/:id", (req, res) => {
-  const student = studentCollection.find(s => s.id === req.params.id);
+app.get("/students/:id", async (req, res) => {
+  const student = await Student.findById(req.params.id);
 
   if (!student) {
     return res.status(404).json({ error: "Student not found" });
@@ -59,11 +70,14 @@ app.get("/students/:id", (req, res) => {
 });
 
 //FOR UPDATING A USER
-app.put("/students/:id", (req, res) => {
+app.put("/students/:id", async (req, res) => {
   const { id } = req.params;
   const { name, email, matricNumber, courses } = req.body;
-  const studentIndex = studentCollection.findIndex(s => s.id === id);
-  const duplicateEmail = studentCollection.find(s => s.email === email && s.id !== id);
+  const student = await Student.findById(id);
+
+  if (!student) {
+    return res.status(404).json({ error: "Student not found" });
+  }
 
   if (name !== undefined) {
     const trimmedName = name.trim();
@@ -90,8 +104,8 @@ app.put("/students/:id", (req, res) => {
 });
 
 //FOR UPDATING A USER PARTIALLY
-app.patch("/students/:id", (req, res) => {
-  const student = studentCollection.find(s => s.id === req.params.id);
+app.patch("/students/:id", async (req, res) => {
+  const student = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true });
 
   if (!student) {
     return res.status(404).json({ error: "Student not found" });
@@ -138,16 +152,15 @@ app.patch("/students/:id", (req, res) => {
 });
 
 //FOR DELETING A USER
-app.delete("/students/:id", (req, res) => {
+app.delete("/students/:id", async (req, res) => {
   const { id } = req.params;
-  const studentIndex = studentCollection.findIndex(s => s.id === id);
+  const student = await Student.findByIdAndDelete(id);
 
-  if (studentIndex === -1) {
+  if (!student) {
     return res.status(404).json({ error: "Student not found" });
   }
-  const deletedStudent = studentCollection.splice(studentIndex, 1);
-  res.json({ message: "Student deleted successfully", student: deletedStudent[0] });
-});
+  res.json({ message: "Student deleted successfully", student });
+  });
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
